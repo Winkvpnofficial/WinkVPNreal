@@ -1,3 +1,410 @@
+#!/usr/bin/env bash
+# Wink VPN — патч v2: возвращён потерянный import animateColorAsState + предыдущие фиксы.
+set -e
+echo "Обновляю файлы..."
+
+cat > "app/src/main/java/com/winkvpn/app/MainActivity.kt" << 'WINKVPN_EOF'
+package com.winkvpn.app
+
+import android.content.Intent
+import android.net.Uri
+import android.net.VpnService
+import android.os.Bundle
+import androidx.activity.ComponentActivity
+import androidx.activity.compose.setContent
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.slideInHorizontally
+import androidx.compose.animation.slideOutHorizontally
+import androidx.compose.animation.togetherWith
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.material3.Surface
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.Modifier
+import com.winkvpn.app.ui.screens.*
+import com.winkvpn.app.ui.theme.WinkYellow
+
+class MainActivity : ComponentActivity() {
+
+    // Системный запрос "Разрешить Wink VPN настраивать VPN-соединения".
+    // Пока за этим не следует реальное подключение — только UI-состояние (см. MainScreen).
+    private val vpnPermissionLauncher = registerForActivityResult(
+        ActivityResultContracts.StartActivityForResult()
+    ) { /* результат обработаем, когда подключим настоящий туннель */ }
+
+    private fun requestVpnPermissionIfNeeded() {
+        val intent = VpnService.prepare(this)
+        if (intent != null) {
+            vpnPermissionLauncher.launch(intent)
+        }
+    }
+
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+        setContent {
+            Surface(modifier = Modifier.fillMaxSize(), color = WinkYellow) {
+                var screen by remember { mutableStateOf(Screen.SPLASH) }
+
+                AnimatedContent(
+                    targetState = screen,
+                    transitionSpec = {
+                        (slideInHorizontally(tween(450)) { it / 3 } + fadeIn(tween(450))) togetherWith
+                            (slideOutHorizontally(tween(450)) { -it / 3 } + fadeOut(tween(450)))
+                    },
+                    label = "screenTransition"
+                ) { current ->
+                    when (current) {
+                        Screen.SPLASH -> SplashScreen(onFinished = { screen = Screen.WELCOME })
+
+                        Screen.WELCOME -> WelcomeScreen(
+                            onGoogleLogin = {
+                                // TODO: интегрировать Google Sign-In SDK
+                                screen = Screen.TELEGRAM
+                            },
+                            onSkip = { screen = Screen.TELEGRAM }
+                        )
+
+                        Screen.TELEGRAM -> TelegramScreen(
+                            onJoin = {
+                                val intent = Intent(Intent.ACTION_VIEW, Uri.parse("https://t.me/Winkvpn_official"))
+                                startActivity(intent)
+                                screen = Screen.THANKS
+                            },
+                            onSkip = { screen = Screen.THANKS }
+                        )
+
+                        Screen.THANKS -> ThanksScreen(
+                            onStart = {
+                                requestVpnPermissionIfNeeded()
+                                screen = Screen.MAIN
+                            }
+                        )
+
+                        Screen.MAIN -> MainScreen()
+                    }
+                }
+            }
+        }
+    }
+}
+
+WINKVPN_EOF
+
+cat > "app/src/main/java/com/winkvpn/app/ui/screens/BackgroundShapes.kt" << 'WINKVPN_EOF'
+package com.winkvpn.app.ui.screens
+
+import androidx.compose.animation.core.LinearEasing
+import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.animation.core.tween
+import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.layout.offset
+import androidx.compose.foundation.layout.size
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Path
+import androidx.compose.ui.graphics.StrokeCap
+import androidx.compose.ui.graphics.StrokeJoin
+import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.unit.dp
+import kotlin.math.sin
+
+/** Плавное floating-покачивание для фоновых декоративных фигур */
+@Composable
+private fun rememberFloatOffset(periodMs: Int, amplitude: Float): androidx.compose.runtime.State<Float> {
+    val transition = rememberInfiniteTransition(label = "float")
+    val phase by transition.animateFloat(
+        initialValue = 0f,
+        targetValue = (2 * Math.PI).toFloat(),
+        animationSpec = infiniteRepeatable(tween(periodMs, easing = LinearEasing), RepeatMode.Restart),
+        label = "floatPhase"
+    )
+    return androidx.compose.runtime.remember {
+        androidx.compose.runtime.derivedStateOf { sin(phase.toDouble()).toFloat() * amplitude }
+    }
+}
+
+/**
+ * Тонкий контур ключа (моно-линия, как в HTML-версии).
+ * ВАЖНО: принимает отдельно width и height — форма ключа не квадратная (~1.6:1),
+ * раньше передавался один sizeDp и рисовалась квадратная канва, из-за чего
+ * ключ визуально сплющивало/растягивало.
+ */
+@Composable
+fun KeyIcon(widthDp: Int, heightDp: Int, alpha: Float, modifier: Modifier = Modifier) {
+    val dy by rememberFloatOffset(periodMs = 6500, amplitude = 10f)
+    Canvas(
+        modifier = modifier
+            .size(width = widthDp.dp, height = heightDp.dp)
+            .offset(y = dy.dp)
+    ) {
+        val strokeWidth = size.height * 0.09f
+        val color = Color.Black.copy(alpha = alpha)
+
+        val ringCenter = Offset(size.width * 0.22f, size.height * 0.5f)
+        drawCircle(color, radius = size.height * 0.42f, center = ringCenter, style = Stroke(width = strokeWidth, cap = StrokeCap.Round))
+        drawCircle(color, radius = size.height * 0.15f, center = ringCenter, style = Stroke(width = strokeWidth * 0.7f, cap = StrokeCap.Round))
+
+        val shaftY = size.height * 0.5f
+        drawLine(color, Offset(size.width * 0.41f, shaftY), Offset(size.width * 0.9f, shaftY), strokeWidth, StrokeCap.Round)
+        drawLine(color, Offset(size.width * 0.8f, shaftY), Offset(size.width * 0.8f, shaftY + size.height * 0.36f), strokeWidth, StrokeCap.Round)
+        drawLine(color, Offset(size.width * 0.66f, shaftY), Offset(size.width * 0.66f, shaftY + size.height * 0.26f), strokeWidth, StrokeCap.Round)
+    }
+}
+
+/** Тонкий контур подарка с бантом — форма квадратная, тут проблем с пропорциями не было */
+@Composable
+fun GiftIcon(sizeDp: Int, alpha: Float, modifier: Modifier = Modifier) {
+    val dy by rememberFloatOffset(periodMs = 7200, amplitude = 9f)
+    Canvas(
+        modifier = modifier
+            .size(sizeDp.dp)
+            .offset(y = dy.dp)
+    ) {
+        val strokeWidth = size.width * 0.05f
+        val stroke = Stroke(width = strokeWidth, cap = StrokeCap.Round, join = StrokeJoin.Round)
+        val color = Color.Black.copy(alpha = alpha)
+        val w = size.width
+        val h = size.height
+
+        drawRoundRect(
+            color,
+            topLeft = Offset(w * 0.15f, h * 0.42f),
+            size = androidx.compose.ui.geometry.Size(w * 0.7f, h * 0.48f),
+            cornerRadius = androidx.compose.ui.geometry.CornerRadius(w * 0.03f),
+            style = stroke
+        )
+        drawLine(color, Offset(w * 0.1f, h * 0.325f), Offset(w * 0.9f, h * 0.325f), strokeWidth, StrokeCap.Round)
+        drawLine(color, Offset(w * 0.5f, h * 0.325f), Offset(w * 0.5f, h * 0.9f), strokeWidth, StrokeCap.Round)
+
+        val bowPath = Path().apply {
+            moveTo(w * 0.35f, h * 0.325f)
+            cubicTo(w * 0.2f, h * 0.325f, w * 0.2f, h * 0.15f, w * 0.325f, h * 0.14f)
+            cubicTo(w * 0.45f, h * 0.13f, w * 0.5f, h * 0.275f, w * 0.5f, h * 0.325f)
+        }
+        drawPath(bowPath, color, style = stroke)
+        val bowPath2 = Path().apply {
+            moveTo(w * 0.65f, h * 0.325f)
+            cubicTo(w * 0.8f, h * 0.325f, w * 0.8f, h * 0.15f, w * 0.675f, h * 0.14f)
+            cubicTo(w * 0.55f, h * 0.13f, w * 0.5f, h * 0.275f, w * 0.5f, h * 0.325f)
+        }
+        drawPath(bowPath2, color, style = stroke)
+    }
+}
+
+/** Плавная изгибающаяся стрелка, указывающая вниз (для экрана "Спасибо") */
+@Composable
+fun CurvedArrow(widthDp: Int, heightDp: Int, alpha: Float, modifier: Modifier = Modifier) {
+    Canvas(modifier = modifier.size(width = widthDp.dp, height = heightDp.dp)) {
+        val strokeWidth = size.width * 0.06f
+        val stroke = Stroke(width = strokeWidth, cap = StrokeCap.Round, join = StrokeJoin.Round)
+        val color = Color.Black.copy(alpha = alpha)
+        val w = size.width
+        val h = size.height
+
+        val path = Path().apply {
+            moveTo(w * 0.77f, h * 0.055f)
+            cubicTo(w * 1.0f, h * 0.28f, w * 0.92f, h * 0.53f, w * 0.58f, h * 0.69f)
+            cubicTo(w * 0.365f, h * 0.8f, w * 0.27f, h * 0.83f, w * 0.26f, h * 0.945f)
+        }
+        drawPath(path, color, style = stroke)
+
+        val tip = Path().apply {
+            moveTo(w * 0.17f, h * 0.895f)
+            lineTo(w * 0.26f, h * 0.965f)
+            lineTo(w * 0.355f, h * 0.888f)
+        }
+        drawPath(tip, color, style = stroke)
+    }
+}
+
+/**
+ * Нормальная векторная иконка Telegram (бумажный самолётик) вместо emoji-заглушки "✈",
+ * которая на некоторых телефонах рендерится системным значком плохого вида.
+ */
+@Composable
+fun TelegramPaperPlaneIcon(sizeDp: Int = 22, tint: Color = Color.White, modifier: Modifier = Modifier) {
+    Canvas(modifier = modifier.size(sizeDp.dp)) {
+        val w = size.width
+        val h = size.height
+
+        val plane = Path().apply {
+            moveTo(w * 0.05f, h * 0.55f)
+            lineTo(w * 0.95f, h * 0.08f)
+            lineTo(w * 0.40f, h * 0.95f)
+            lineTo(w * 0.34f, h * 0.63f)
+            close()
+        }
+        drawPath(plane, tint)
+
+        drawLine(
+            color = tint.copy(alpha = 0.55f),
+            start = Offset(w * 0.34f, h * 0.63f),
+            end = Offset(w * 0.60f, h * 0.47f),
+            strokeWidth = w * 0.035f,
+            cap = StrokeCap.Round
+        )
+    }
+}
+
+WINKVPN_EOF
+
+cat > "app/src/main/java/com/winkvpn/app/ui/screens/WelcomeScreen.kt" << 'WINKVPN_EOF'
+package com.winkvpn.app.ui.screens
+
+import androidx.compose.foundation.Image
+import androidx.compose.foundation.layout.*
+import androidx.compose.material3.Icon
+import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.unit.dp
+
+@Composable
+fun WelcomeScreen(
+    onGoogleLogin: () -> Unit,
+    onSkip: () -> Unit
+) {
+    Box(modifier = Modifier.fillMaxSize()) {
+        // Фоновые ключи — тонкие моно-линии, не перекрывают контент
+        KeyIcon(
+            widthDp = 280, heightDp = 175, alpha = 0.09f,
+            modifier = Modifier.align(Alignment.TopStart).offset(x = (-70).dp, y = 90.dp)
+        )
+        KeyIcon(
+            widthDp = 210, heightDp = 131, alpha = 0.06f,
+            modifier = Modifier.align(Alignment.BottomEnd).offset(x = 55.dp, y = (-130).dp)
+        )
+
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(top = 60.dp, bottom = 30.dp),
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            Column(
+                modifier = Modifier.weight(1f),
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.Center
+            ) {
+                BrandBlock()
+                Spacer(Modifier.height(30.dp))
+                ScreenCopy(
+                    title = "Добро пожаловать\nв Wink VPN!",
+                    subtitle = "Вы можете войти в аккаунт, это поможет сохранить ваши бонусы!"
+                )
+                Spacer(Modifier.height(34.dp))
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 28.dp),
+                    verticalArrangement = Arrangement.spacedBy(14.dp)
+                ) {
+                    PrimaryButton(
+                        text = "Войти через Google",
+                        leadingIcon = { GoogleGlyph() },
+                        onClick = onGoogleLogin
+                    )
+                    GhostButton(text = "Пропустить →", onClick = onSkip)
+                }
+            }
+            StepDots(activeIndex = 0)
+        }
+    }
+}
+
+/** Простая монохромная "G" — полноценную многоцветную Google-иконку вставим позже как drawable */
+@Composable
+private fun GoogleGlyph() {
+    Box(
+        modifier = Modifier.size(22.dp),
+        contentAlignment = Alignment.Center
+    ) {
+        Text("G", color = Color.White, fontWeight = androidx.compose.ui.text.font.FontWeight.Black)
+    }
+}
+
+WINKVPN_EOF
+
+cat > "app/src/main/java/com/winkvpn/app/ui/screens/TelegramScreen.kt" << 'WINKVPN_EOF'
+package com.winkvpn.app.ui.screens
+
+import androidx.compose.foundation.layout.*
+import androidx.compose.runtime.Composable
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.unit.dp
+
+@Composable
+fun TelegramScreen(
+    onJoin: () -> Unit,
+    onSkip: () -> Unit
+) {
+    Box(modifier = Modifier.fillMaxSize()) {
+        GiftIcon(
+            sizeDp = 220, alpha = 0.09f,
+            modifier = Modifier.align(Alignment.TopEnd).offset(x = 45.dp, y = 75.dp)
+        )
+        GiftIcon(
+            sizeDp = 170, alpha = 0.06f,
+            modifier = Modifier.align(Alignment.BottomStart).offset(x = (-40).dp, y = (-110).dp)
+        )
+
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(top = 60.dp, bottom = 30.dp),
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            Column(
+                modifier = Modifier.weight(1f),
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.Center
+            ) {
+                BrandBlock()
+                Spacer(Modifier.height(30.dp))
+                ScreenCopy(
+                    title = "Присоединяйтесь к нашему Telegram каналу!",
+                    subtitle = "Будьте в курсе новостей и получайте секретные промокоды!"
+                )
+                Spacer(Modifier.height(34.dp))
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 28.dp),
+                    verticalArrangement = Arrangement.spacedBy(14.dp)
+                ) {
+                    PrimaryButton(
+                        text = "Присоединиться",
+                        leadingIcon = { TelegramPaperPlaneIcon(sizeDp = 20) },
+                        onClick = onJoin
+                    )
+                    GhostButton(text = "Пропустить →", onClick = onSkip)
+                }
+            }
+            StepDots(activeIndex = 1)
+        }
+    }
+}
+
+WINKVPN_EOF
+
+cat > "app/src/main/java/com/winkvpn/app/ui/screens/MainScreen.kt" << 'WINKVPN_EOF'
 package com.winkvpn.app.ui.screens
 
 import android.content.Intent
@@ -595,3 +1002,7 @@ private fun ConfettiOverlay(trigger: Int) {
     }
 }
 
+WINKVPN_EOF
+
+echo "Готово! Файлы обновлены."
+echo "Дальше: git add -A && git commit -m fix3 && git push"
