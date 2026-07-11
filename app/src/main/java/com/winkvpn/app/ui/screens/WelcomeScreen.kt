@@ -19,11 +19,11 @@ fun WelcomeScreen(
     Box(modifier = Modifier.fillMaxSize()) {
         // Фоновые ключи — тонкие моно-линии, не перекрывают контент
         KeyIcon(
-            sizeDp = 260, alpha = 0.09f,
+            widthDp = 280, heightDp = 175, alpha = 0.09f,
             modifier = Modifier.align(Alignment.TopStart).offset(x = (-70).dp, y = 90.dp)
         )
         KeyIcon(
-            sizeDp = 190, alpha = 0.06f,
+            widthDp = 210, heightDp = 131, alpha = 0.06f,
             modifier = Modifier.align(Alignment.BottomEnd).offset(x = 55.dp, y = (-130).dp)
         )
 

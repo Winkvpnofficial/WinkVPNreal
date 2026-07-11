@@ -1,12 +1,9 @@
 package com.winkvpn.app.ui.screens
 
 import androidx.compose.foundation.layout.*
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 
 @Composable
@@ -50,7 +47,7 @@ fun TelegramScreen(
                 ) {
                     PrimaryButton(
                         text = "Присоединиться",
-                        leadingIcon = { TelegramGlyph() },
+                        leadingIcon = { TelegramPaperPlaneIcon(sizeDp = 20) },
                         onClick = onJoin
                     )
                     GhostButton(text = "Пропустить →", onClick = onSkip)
@@ -58,16 +55,6 @@ fun TelegramScreen(
             }
             StepDots(activeIndex = 1)
         }
-    }
-}
-
-@Composable
-private fun TelegramGlyph() {
-    Box(
-        modifier = androidx.compose.ui.Modifier.size(22.dp),
-        contentAlignment = Alignment.Center
-    ) {
-        Text("✈", color = Color.White, fontWeight = FontWeight.Black)
     }
 }
 

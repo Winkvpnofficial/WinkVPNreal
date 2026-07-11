@@ -43,7 +43,7 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContent {
-            Surface(modifier = Modifier.fillMaxSize().background(WinkYellow)) {
+            Surface(modifier = Modifier.fillMaxSize(), color = WinkYellow) {
                 var screen by remember { mutableStateOf(Screen.SPLASH) }
 
                 AnimatedContent(
