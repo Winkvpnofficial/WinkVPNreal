@@ -17,11 +17,15 @@ import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.Surface
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalLifecycleOwner
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
 import com.winkvpn.app.ui.screens.*
 import com.winkvpn.app.ui.theme.WinkYellow
 
@@ -46,6 +50,30 @@ class MainActivity : ComponentActivity() {
             Surface(modifier = Modifier.fillMaxSize(), color = WinkYellow) {
                 var screen by remember { mutableStateOf(Screen.SPLASH) }
 
+                // Ждём ли мы возвращения пользователя из внешнего Telegram-приложения/браузера
+                var waitingForTelegramReturn by remember { mutableStateOf(false) }
+                var hasPausedSinceWaiting by remember { mutableStateOf(false) }
+
+                val lifecycleOwner = LocalLifecycleOwner.current
+                DisposableEffect(waitingForTelegramReturn) {
+                    if (!waitingForTelegramReturn) return@DisposableEffect onDispose {}
+                    hasPausedSinceWaiting = false
+                    val observer = LifecycleEventObserver { _, event ->
+                        when (event) {
+                            Lifecycle.Event.ON_PAUSE -> hasPausedSinceWaiting = true
+                            Lifecycle.Event.ON_RESUME -> {
+                                if (hasPausedSinceWaiting) {
+                                    waitingForTelegramReturn = false
+                                    screen = Screen.TELEGRAM_THANKS
+                                }
+                            }
+                            else -> {}
+                        }
+                    }
+                    lifecycleOwner.lifecycle.addObserver(observer)
+                    onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
+                }
+
                 AnimatedContent(
                     targetState = screen,
                     transitionSpec = {
@@ -66,12 +94,17 @@ class MainActivity : ComponentActivity() {
                         )
 
                         Screen.TELEGRAM -> TelegramScreen(
+                            isWaitingForReturn = waitingForTelegramReturn,
                             onJoin = {
                                 val intent = Intent(Intent.ACTION_VIEW, Uri.parse("https://t.me/Winkvpn_official"))
                                 startActivity(intent)
-                                screen = Screen.THANKS
+                                waitingForTelegramReturn = true
                             },
                             onSkip = { screen = Screen.THANKS }
+                        )
+
+                        Screen.TELEGRAM_THANKS -> TelegramThanksScreen(
+                            onContinue = { screen = Screen.THANKS }
                         )
 
                         Screen.THANKS -> ThanksScreen(

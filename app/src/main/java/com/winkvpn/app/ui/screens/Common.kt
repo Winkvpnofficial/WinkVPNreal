@@ -57,6 +57,7 @@ fun ScreenCopy(title: String, subtitle: String) {
             textAlign = TextAlign.Center,
             lineHeight = 29.sp
         )
+        if (subtitle.isNotBlank()) {
         Spacer(Modifier.height(12.dp))
         Text(
             subtitle,
@@ -66,6 +67,7 @@ fun ScreenCopy(title: String, subtitle: String) {
             textAlign = TextAlign.Center,
             lineHeight = 21.sp
         )
+        }
     }
 }
 

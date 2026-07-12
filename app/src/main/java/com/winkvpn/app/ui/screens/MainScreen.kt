@@ -227,7 +227,7 @@ fun MainScreen() {
             Spacer(Modifier.weight(1f))
 
             // Connect button
-            Box(modifier = Modifier.fillMaxWidth().padding(horizontal = 22.dp, vertical = 22.dp)) {
+            Box(modifier = Modifier.fillMaxWidth().padding(horizontal = 22.dp).padding(top = 22.dp, bottom = 42.dp)) {
                 val btnColor by animateColorAsState(
                     if (connState == ConnState.ON) Color(0xFF222222) else WinkBlack,
                     label = "connBtnColor"
@@ -293,20 +293,16 @@ fun MainScreen() {
 
 @Composable
 private fun PowerButton(connected: Boolean, connecting: Boolean, onClick: () -> Unit) {
-    val infinite = rememberInfiniteTransition(label = "breathe")
-    val glowAlpha by infinite.animateFloat(
-        initialValue = 0.35f, targetValue = 0.5f,
-        animationSpec = infiniteRepeatable(tween(1500, easing = FastOutSlowInEasing), RepeatMode.Reverse),
-        label = "glowAlpha"
+    val ringColor by animateColorAsState(
+        if (connected) WinkGreen else WinkBlack,
+        animationSpec = tween(650), label = "ringColor"
     )
 
-    val ringOuterColor by animateColorAsState(
-        if (connected) WinkGreen.copy(alpha = 0.35f) else WinkBlack.copy(alpha = 0.07f),
-        animationSpec = tween(700), label = "ringOuter"
-    )
-    val ringMidColor by animateColorAsState(
-        if (connected) WinkGreen.copy(alpha = 0.4f) else WinkBlack.copy(alpha = 0.1f),
-        animationSpec = tween(700), label = "ringMid"
+    val infinite = rememberInfiniteTransition(label = "glow")
+    val glowPulse by infinite.animateFloat(
+        initialValue = 0.14f, targetValue = 0.24f,
+        animationSpec = infiniteRepeatable(tween(1600, easing = FastOutSlowInEasing), RepeatMode.Reverse),
+        label = "glowPulse"
     )
 
     val spinAnim = remember { Animatable(0f) }
@@ -318,15 +314,24 @@ private fun PowerButton(connected: Boolean, connecting: Boolean, onClick: () -> 
     }
 
     Box(
-        modifier = Modifier
-            .size(216.dp)
-            .border(2.dp, ringOuterColor, CircleShape),
+        modifier = Modifier.size(196.dp),
         contentAlignment = Alignment.Center
     ) {
+        // мягкое зелёное свечение позади кольца, видно только при подключении
+        if (connected) {
+            Box(
+                modifier = Modifier
+                    .size(196.dp)
+                    .clip(CircleShape)
+                    .background(WinkGreen.copy(alpha = glowPulse))
+            )
+        }
+
+        // единственное кольцо — просто чёрная полоска, зелёная при подключении
         Box(
             modifier = Modifier
-                .size(182.dp)
-                .border(2.dp, ringMidColor, CircleShape),
+                .size(168.dp)
+                .border(width = 6.dp, color = ringColor, shape = CircleShape),
             contentAlignment = Alignment.Center
         ) {
             Box(
@@ -334,13 +339,6 @@ private fun PowerButton(connected: Boolean, connecting: Boolean, onClick: () -> 
                     .size(148.dp)
                     .clip(CircleShape)
                     .background(WinkYellow)
-                    .let {
-                        if (connected)
-                            it.graphicsLayer {
-                                shadowElevation = 0f
-                            }
-                        else it
-                    }
                     .clickable(onClick = onClick),
                 contentAlignment = Alignment.Center
             ) {

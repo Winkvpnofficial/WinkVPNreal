@@ -7,11 +7,15 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 
 @Composable
-fun ThanksScreen(onStart: () -> Unit) {
+fun TelegramThanksScreen(onContinue: () -> Unit) {
     Box(modifier = Modifier.fillMaxSize()) {
-        CurvedArrow(
-            widthDp = 220, heightDp = 300, alpha = 0.12f,
-            modifier = Modifier.align(Alignment.BottomCenter).offset(y = (-70).dp)
+        PartyIcon(
+            sizeDp = 200, alpha = 0.09f,
+            modifier = Modifier.align(Alignment.TopEnd).offset(x = 40.dp, y = 80.dp)
+        )
+        PartyIcon(
+            sizeDp = 150, alpha = 0.06f,
+            modifier = Modifier.align(Alignment.BottomStart).offset(x = (-30).dp, y = (-100).dp)
         )
 
         Column(
@@ -28,15 +32,14 @@ fun ThanksScreen(onStart: () -> Unit) {
                 BrandBlock()
                 Spacer(Modifier.height(30.dp))
                 ScreenCopy(
-                    title = "Спасибо, что начали использовать Wink VPN!",
-                    subtitle = "Начинай пользоваться уже — жми кнопку!"
+                    title = "Спасибо за присоединение! Давайте продолжим",
+                    subtitle = ""
                 )
                 Spacer(Modifier.height(34.dp))
                 Box(modifier = Modifier.fillMaxWidth().padding(horizontal = 28.dp)) {
-                    PrimaryButton(text = "Начать!", onClick = onStart)
+                    PrimaryButton(text = "Продолжить", onClick = onContinue)
                 }
             }
-            StepDots(activeIndex = 2)
         }
     }
 }

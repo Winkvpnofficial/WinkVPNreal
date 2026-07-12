@@ -1,13 +1,22 @@
 package com.winkvpn.app.ui.screens
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import com.winkvpn.app.ui.theme.WinkBlack
+import com.winkvpn.app.ui.theme.WinkYellow
 
 @Composable
 fun TelegramScreen(
+    isWaitingForReturn: Boolean,
     onJoin: () -> Unit,
     onSkip: () -> Unit
 ) {
@@ -50,10 +59,35 @@ fun TelegramScreen(
                         leadingIcon = { TelegramPaperPlaneIcon(sizeDp = 20) },
                         onClick = onJoin
                     )
-                    GhostButton(text = "Пропустить →", onClick = onSkip)
+                    GhostButton(text = "Пропустить", onClick = onSkip)
                 }
             }
             StepDots(activeIndex = 1)
+        }
+
+        // Модалка ожидания возврата из Telegram
+        if (isWaitingForReturn) {
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(Color.Black.copy(alpha = 0.35f)),
+                contentAlignment = Alignment.Center
+            ) {
+                Box(
+                    modifier = Modifier
+                        .padding(horizontal = 40.dp)
+                        .background(WinkYellow, shape = androidx.compose.foundation.shape.RoundedCornerShape(24.dp))
+                        .padding(horizontal = 28.dp, vertical = 26.dp)
+                ) {
+                    Text(
+                        "Перенаправление, ожидаем возвращения!",
+                        color = WinkBlack,
+                        fontSize = 16.sp,
+                        fontWeight = FontWeight.Black,
+                        textAlign = TextAlign.Center
+                    )
+                }
+            }
         }
     }
 }

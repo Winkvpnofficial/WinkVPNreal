@@ -56,7 +56,7 @@ fun WelcomeScreen(
                         leadingIcon = { GoogleGlyph() },
                         onClick = onGoogleLogin
                     )
-                    GhostButton(text = "Пропустить →", onClick = onSkip)
+                    GhostButton(text = "Пропустить", onClick = onSkip)
                 }
             }
             StepDots(activeIndex = 0)

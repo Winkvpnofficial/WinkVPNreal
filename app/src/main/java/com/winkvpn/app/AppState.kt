@@ -1,6 +1,6 @@
 package com.winkvpn.app
 
-enum class Screen { SPLASH, WELCOME, TELEGRAM, THANKS, MAIN }
+enum class Screen { SPLASH, WELCOME, TELEGRAM, TELEGRAM_THANKS, THANKS, MAIN }
 
 data class VpnServer(
     val flag: String,

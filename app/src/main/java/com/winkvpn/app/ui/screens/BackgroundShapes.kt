@@ -15,6 +15,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
+import androidx.compose.ui.graphics.PathEffect
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.StrokeJoin
 import androidx.compose.ui.graphics.drawscope.Stroke
@@ -37,10 +38,8 @@ private fun rememberFloatOffset(periodMs: Int, amplitude: Float): androidx.compo
 }
 
 /**
- * Тонкий контур ключа (моно-линия, как в HTML-версии).
- * ВАЖНО: принимает отдельно width и height — форма ключа не квадратная (~1.6:1),
- * раньше передавался один sizeDp и рисовалась квадратная канва, из-за чего
- * ключ визуально сплющивало/растягивало.
+ * Ключ — простой, чистый силуэт одной толщины линии: кольцо + прямой стержень + один зубец.
+ * Минимум деталей — так аккуратнее смотрится мелким и полупрозрачным на фоне.
  */
 @Composable
 fun KeyIcon(widthDp: Int, heightDp: Int, alpha: Float, modifier: Modifier = Modifier) {
@@ -50,21 +49,24 @@ fun KeyIcon(widthDp: Int, heightDp: Int, alpha: Float, modifier: Modifier = Modi
             .size(width = widthDp.dp, height = heightDp.dp)
             .offset(y = dy.dp)
     ) {
-        val strokeWidth = size.height * 0.09f
+        val sw = size.height * 0.1f
         val color = Color.Black.copy(alpha = alpha)
+        val stroke = Stroke(width = sw, cap = StrokeCap.Round, join = StrokeJoin.Round)
 
-        val ringCenter = Offset(size.width * 0.22f, size.height * 0.5f)
-        drawCircle(color, radius = size.height * 0.42f, center = ringCenter, style = Stroke(width = strokeWidth, cap = StrokeCap.Round))
-        drawCircle(color, radius = size.height * 0.15f, center = ringCenter, style = Stroke(width = strokeWidth * 0.7f, cap = StrokeCap.Round))
+        val ringCenter = Offset(size.width * 0.24f, size.height * 0.5f)
+        val ringRadius = size.height * 0.38f
+        drawCircle(color, radius = ringRadius, center = ringCenter, style = stroke)
 
+        val shaftStartX = ringCenter.x + ringRadius * 0.72f
         val shaftY = size.height * 0.5f
-        drawLine(color, Offset(size.width * 0.41f, shaftY), Offset(size.width * 0.9f, shaftY), strokeWidth, StrokeCap.Round)
-        drawLine(color, Offset(size.width * 0.8f, shaftY), Offset(size.width * 0.8f, shaftY + size.height * 0.36f), strokeWidth, StrokeCap.Round)
-        drawLine(color, Offset(size.width * 0.66f, shaftY), Offset(size.width * 0.66f, shaftY + size.height * 0.26f), strokeWidth, StrokeCap.Round)
+        drawLine(color, Offset(shaftStartX, shaftY), Offset(size.width * 0.92f, shaftY), sw, StrokeCap.Round)
+        drawLine(color, Offset(size.width * 0.78f, shaftY), Offset(size.width * 0.78f, shaftY + size.height * 0.3f), sw, StrokeCap.Round)
     }
 }
 
-/** Тонкий контур подарка с бантом — форма квадратная, тут проблем с пропорциями не было */
+/**
+ * Подарок — упрощённый: коробка + крест-лента + один аккуратный бант сверху.
+ */
 @Composable
 fun GiftIcon(sizeDp: Int, alpha: Float, modifier: Modifier = Modifier) {
     val dy by rememberFloatOffset(periodMs = 7200, amplitude = 9f)
@@ -73,43 +75,40 @@ fun GiftIcon(sizeDp: Int, alpha: Float, modifier: Modifier = Modifier) {
             .size(sizeDp.dp)
             .offset(y = dy.dp)
     ) {
-        val strokeWidth = size.width * 0.05f
-        val stroke = Stroke(width = strokeWidth, cap = StrokeCap.Round, join = StrokeJoin.Round)
+        val sw = size.width * 0.045f
+        val stroke = Stroke(width = sw, cap = StrokeCap.Round, join = StrokeJoin.Round)
         val color = Color.Black.copy(alpha = alpha)
         val w = size.width
         val h = size.height
 
         drawRoundRect(
             color,
-            topLeft = Offset(w * 0.15f, h * 0.42f),
-            size = androidx.compose.ui.geometry.Size(w * 0.7f, h * 0.48f),
-            cornerRadius = androidx.compose.ui.geometry.CornerRadius(w * 0.03f),
+            topLeft = Offset(w * 0.17f, h * 0.44f),
+            size = androidx.compose.ui.geometry.Size(w * 0.66f, h * 0.44f),
+            cornerRadius = androidx.compose.ui.geometry.CornerRadius(w * 0.035f),
             style = stroke
         )
-        drawLine(color, Offset(w * 0.1f, h * 0.325f), Offset(w * 0.9f, h * 0.325f), strokeWidth, StrokeCap.Round)
-        drawLine(color, Offset(w * 0.5f, h * 0.325f), Offset(w * 0.5f, h * 0.9f), strokeWidth, StrokeCap.Round)
+        drawLine(color, Offset(w * 0.12f, h * 0.36f), Offset(w * 0.88f, h * 0.36f), sw, StrokeCap.Round)
+        drawLine(color, Offset(w * 0.5f, h * 0.36f), Offset(w * 0.5f, h * 0.88f), sw, StrokeCap.Round)
 
-        val bowPath = Path().apply {
-            moveTo(w * 0.35f, h * 0.325f)
-            cubicTo(w * 0.2f, h * 0.325f, w * 0.2f, h * 0.15f, w * 0.325f, h * 0.14f)
-            cubicTo(w * 0.45f, h * 0.13f, w * 0.5f, h * 0.275f, w * 0.5f, h * 0.325f)
+        val bow = Path().apply {
+            moveTo(w * 0.5f, h * 0.36f)
+            cubicTo(w * 0.5f, h * 0.2f, w * 0.34f, h * 0.14f, w * 0.32f, h * 0.24f)
+            cubicTo(w * 0.3f, h * 0.34f, w * 0.42f, h * 0.36f, w * 0.5f, h * 0.36f)
+            cubicTo(w * 0.58f, h * 0.36f, w * 0.7f, h * 0.34f, w * 0.68f, h * 0.24f)
+            cubicTo(w * 0.66f, h * 0.14f, w * 0.5f, h * 0.2f, w * 0.5f, h * 0.36f)
+            close()
         }
-        drawPath(bowPath, color, style = stroke)
-        val bowPath2 = Path().apply {
-            moveTo(w * 0.65f, h * 0.325f)
-            cubicTo(w * 0.8f, h * 0.325f, w * 0.8f, h * 0.15f, w * 0.675f, h * 0.14f)
-            cubicTo(w * 0.55f, h * 0.13f, w * 0.5f, h * 0.275f, w * 0.5f, h * 0.325f)
-        }
-        drawPath(bowPath2, color, style = stroke)
+        drawPath(bow, color, style = stroke)
     }
 }
 
-/** Плавная изгибающаяся стрелка, указывающая вниз (для экрана "Спасибо") */
+/** Плавная изгибающаяся стрелка (используется только на фоне, не в кнопках) */
 @Composable
 fun CurvedArrow(widthDp: Int, heightDp: Int, alpha: Float, modifier: Modifier = Modifier) {
     Canvas(modifier = modifier.size(width = widthDp.dp, height = heightDp.dp)) {
-        val strokeWidth = size.width * 0.06f
-        val stroke = Stroke(width = strokeWidth, cap = StrokeCap.Round, join = StrokeJoin.Round)
+        val sw = size.width * 0.06f
+        val stroke = Stroke(width = sw, cap = StrokeCap.Round, join = StrokeJoin.Round)
         val color = Color.Black.copy(alpha = alpha)
         val w = size.width
         val h = size.height
@@ -130,32 +129,56 @@ fun CurvedArrow(widthDp: Int, heightDp: Int, alpha: Float, modifier: Modifier = 
     }
 }
 
-/**
- * Нормальная векторная иконка Telegram (бумажный самолётик) вместо emoji-заглушки "✈",
- * которая на некоторых телефонах рендерится системным значком плохого вида.
- */
+/** Чистая векторная иконка Telegram — сплошной силуэт бумажного самолётика, без лишних деталей */
 @Composable
 fun TelegramPaperPlaneIcon(sizeDp: Int = 22, tint: Color = Color.White, modifier: Modifier = Modifier) {
     Canvas(modifier = modifier.size(sizeDp.dp)) {
         val w = size.width
         val h = size.height
-
         val plane = Path().apply {
-            moveTo(w * 0.05f, h * 0.55f)
-            lineTo(w * 0.95f, h * 0.08f)
-            lineTo(w * 0.40f, h * 0.95f)
-            lineTo(w * 0.34f, h * 0.63f)
+            moveTo(w * 0.06f, h * 0.52f)
+            lineTo(w * 0.94f, h * 0.10f)
+            lineTo(w * 0.62f, h * 0.92f)
+            lineTo(w * 0.47f, h * 0.60f)
             close()
         }
         drawPath(plane, tint)
+    }
+}
 
-        drawLine(
-            color = tint.copy(alpha = 0.55f),
-            start = Offset(w * 0.34f, h * 0.63f),
-            end = Offset(w * 0.60f, h * 0.47f),
-            strokeWidth = w * 0.035f,
-            cap = StrokeCap.Round
-        )
+/**
+ * Декоративная "праздничная" иконка (в духе 🎉) для экрана благодарности за подписку —
+ * тот же чистый монолинейный чёрный стиль, что и у ключа/подарка.
+ */
+@Composable
+fun PartyIcon(sizeDp: Int, alpha: Float, modifier: Modifier = Modifier) {
+    val dy by rememberFloatOffset(periodMs = 6800, amplitude = 8f)
+    Canvas(
+        modifier = modifier
+            .size(sizeDp.dp)
+            .offset(y = dy.dp)
+    ) {
+        val sw = size.width * 0.045f
+        val stroke = Stroke(width = sw, cap = StrokeCap.Round, join = StrokeJoin.Round)
+        val color = Color.Black.copy(alpha = alpha)
+        val w = size.width
+        val h = size.height
+
+        // конус хлопушки
+        val cone = Path().apply {
+            moveTo(w * 0.12f, h * 0.9f)
+            lineTo(w * 0.42f, h * 0.42f)
+            lineTo(w * 0.68f, h * 0.6f)
+            close()
+        }
+        drawPath(cone, color, style = stroke)
+
+        // разлетающиеся конфетти-штрихи
+        drawLine(color, Offset(w * 0.62f, h * 0.32f), Offset(w * 0.78f, h * 0.18f), sw, StrokeCap.Round)
+        drawLine(color, Offset(w * 0.78f, h * 0.5f), Offset(w * 0.97f, h * 0.42f), sw, StrokeCap.Round)
+        drawLine(color, Offset(w * 0.68f, h * 0.68f), Offset(w * 0.86f, h * 0.74f), sw, StrokeCap.Round)
+        drawCircle(color, radius = w * 0.025f, center = Offset(w * 0.88f, h * 0.24f))
+        drawCircle(color, radius = w * 0.02f, center = Offset(w * 0.55f, h * 0.14f))
     }
 }
 
