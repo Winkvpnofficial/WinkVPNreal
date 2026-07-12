@@ -10,11 +10,11 @@ import androidx.compose.ui.unit.dp
 fun TelegramThanksScreen(onContinue: () -> Unit) {
     Box(modifier = Modifier.fillMaxSize()) {
         PartyIcon(
-            sizeDp = 200, alpha = 0.09f,
+            sizeDp = 200, alpha = 0.16f,
             modifier = Modifier.align(Alignment.TopEnd).offset(x = 40.dp, y = 80.dp)
         )
         PartyIcon(
-            sizeDp = 150, alpha = 0.06f,
+            sizeDp = 150, alpha = 0.11f,
             modifier = Modifier.align(Alignment.BottomStart).offset(x = (-30).dp, y = (-100).dp)
         )
 

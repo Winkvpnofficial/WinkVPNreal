@@ -2,8 +2,13 @@ package com.winkvpn.app.ui.screens
 
 import android.content.Intent
 import android.net.Uri
+import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.*
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.slideInVertically
+import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
@@ -90,7 +95,7 @@ fun MainScreen() {
                 .align(Alignment.TopEnd)
                 .offset(x = 10.dp, y = (-20).dp)
         ) {
-            CurvedArrow(widthDp = 130, heightDp = 170, alpha = 0.05f)
+            CurvedArrow(widthDp = 130, heightDp = 170, alpha = 0.09f)
         }
 
         Column(
@@ -283,7 +288,11 @@ fun MainScreen() {
         }
 
         // Connecting overlay
-        if (connState == ConnState.CONNECTING) {
+        AnimatedVisibility(
+            visible = connState == ConnState.CONNECTING,
+            enter = fadeIn(tween(220, easing = FastOutSlowInEasing)),
+            exit = fadeOut(tween(180, easing = FastOutSlowInEasing))
+        ) {
             Box(
                 modifier = Modifier
                     .fillMaxSize()
@@ -451,35 +460,49 @@ private fun PromoModal(
     onSuccess: () -> Unit,
     onOpenTelegram: () -> Unit
 ) {
-    if (!visible) return
     var input by remember { mutableStateOf("") }
     var message by remember { mutableStateOf("") }
     var isError by remember { mutableStateOf(false) }
     val scope = rememberCoroutineScope()
 
-    Box(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(Color.Black.copy(alpha = 0.45f))
-            .clickable(
-                indication = null,
-                interactionSource = remember { MutableInteractionSource() },
-                onClick = onDismiss
-            )
+    AnimatedVisibility(
+        visible = visible,
+        enter = fadeIn(tween(260, easing = FastOutSlowInEasing)),
+        exit = fadeOut(tween(200, easing = FastOutSlowInEasing))
     ) {
         Box(
             modifier = Modifier
-                .align(Alignment.BottomCenter)
-                .fillMaxWidth()
-                .clip(RoundedCornerShape(topStart = 32.dp, topEnd = 32.dp))
-                .background(WinkYellow)
+                .fillMaxSize()
+                .background(Color.Black.copy(alpha = 0.45f))
                 .clickable(
                     indication = null,
                     interactionSource = remember { MutableInteractionSource() },
-                    onClick = {} // перехватывает тап, чтобы не закрывать модалку при клике внутри
+                    onClick = onDismiss
                 )
-                .padding(horizontal = 26.dp, vertical = 24.dp)
         ) {
+            Box(
+                modifier = Modifier
+                    .align(Alignment.BottomCenter)
+                    .fillMaxWidth()
+                    .animateEnterExit(
+                        enter = slideInVertically(
+                            animationSpec = tween(340, easing = FastOutSlowInEasing),
+                            initialOffsetY = { it }
+                        ) + fadeIn(tween(260)),
+                        exit = slideOutVertically(
+                            animationSpec = tween(220, easing = FastOutSlowInEasing),
+                            targetOffsetY = { it }
+                        ) + fadeOut(tween(180))
+                    )
+                    .clip(RoundedCornerShape(topStart = 32.dp, topEnd = 32.dp))
+                    .background(WinkYellow)
+                    .clickable(
+                        indication = null,
+                        interactionSource = remember { MutableInteractionSource() },
+                        onClick = {} // перехватывает тап, чтобы не закрывать модалку при клике внутри
+                    )
+                    .padding(horizontal = 26.dp, vertical = 24.dp)
+            ) {
             Column(horizontalAlignment = Alignment.CenterHorizontally) {
                 Box(
                     modifier = Modifier
@@ -569,6 +592,7 @@ private fun PromoModal(
                 }
             }
         }
+    }
     }
 }
 

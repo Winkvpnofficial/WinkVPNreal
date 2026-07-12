@@ -10,7 +10,7 @@ import androidx.compose.ui.unit.dp
 fun ThanksScreen(onStart: () -> Unit) {
     Box(modifier = Modifier.fillMaxSize()) {
         CurvedArrow(
-            widthDp = 220, heightDp = 300, alpha = 0.12f,
+            widthDp = 220, heightDp = 300, alpha = 0.18f,
             modifier = Modifier.align(Alignment.BottomCenter).offset(y = (-70).dp)
         )
 

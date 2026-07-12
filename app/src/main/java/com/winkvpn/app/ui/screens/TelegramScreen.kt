@@ -1,5 +1,12 @@
 package com.winkvpn.app.ui.screens
 
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.scaleIn
+import androidx.compose.animation.scaleOut
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.material3.Text
@@ -22,11 +29,11 @@ fun TelegramScreen(
 ) {
     Box(modifier = Modifier.fillMaxSize()) {
         GiftIcon(
-            sizeDp = 220, alpha = 0.09f,
+            sizeDp = 220, alpha = 0.16f,
             modifier = Modifier.align(Alignment.TopEnd).offset(x = 45.dp, y = 75.dp)
         )
         GiftIcon(
-            sizeDp = 170, alpha = 0.06f,
+            sizeDp = 170, alpha = 0.11f,
             modifier = Modifier.align(Alignment.BottomStart).offset(x = (-40).dp, y = (-110).dp)
         )
 
@@ -65,8 +72,12 @@ fun TelegramScreen(
             StepDots(activeIndex = 1)
         }
 
-        // Модалка ожидания возврата из Telegram
-        if (isWaitingForReturn) {
+        // Модалка ожидания возврата из Telegram — плавное появление/исчезание
+        AnimatedVisibility(
+            visible = isWaitingForReturn,
+            enter = fadeIn(tween(240, easing = FastOutSlowInEasing)),
+            exit = fadeOut(tween(180, easing = FastOutSlowInEasing))
+        ) {
             Box(
                 modifier = Modifier
                     .fillMaxSize()
@@ -76,6 +87,10 @@ fun TelegramScreen(
                 Box(
                     modifier = Modifier
                         .padding(horizontal = 40.dp)
+                        .animateEnterExit(
+                            enter = scaleIn(tween(280, easing = FastOutSlowInEasing), initialScale = 0.85f) + fadeIn(tween(240)),
+                            exit = scaleOut(tween(180), targetScale = 0.9f) + fadeOut(tween(150))
+                        )
                         .background(WinkYellow, shape = androidx.compose.foundation.shape.RoundedCornerShape(24.dp))
                         .padding(horizontal = 28.dp, vertical = 26.dp)
                 ) {
@@ -91,4 +106,5 @@ fun TelegramScreen(
         }
     }
 }
+
 

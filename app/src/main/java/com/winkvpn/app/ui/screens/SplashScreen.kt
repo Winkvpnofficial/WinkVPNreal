@@ -15,7 +15,9 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.graphicsLayer
@@ -63,7 +65,9 @@ fun SplashScreen(onFinished: () -> Unit) {
     val starPhaseA = remember { Animatable(0f) } // логотип → центр
     val starPhaseB = remember { Animatable(0f) } // центр → финальная точка
     val floatingStarAlpha = remember { Animatable(1f) }
-    val finalRowAlpha = remember { Animatable(0f) }
+    val finalStarAlpha = remember { Animatable(0f) }
+    var visibleCharCount by remember { mutableStateOf(0) }
+    val fullText = "Wink VPN"
 
     LaunchedEffect(Unit) {
         // 1. Лёгкий наезд камерой
@@ -84,14 +88,18 @@ fun SplashScreen(onFinished: () -> Unit) {
 
         delay(40)
 
-        // 5. Звезда летит дальше, к финальной точке — и одновременно кроссфейд
-        //    на настоящий (Compose-layout) ряд "★ Wink VPN", чтобы итог всегда
-        //    был идеально ровным, без ручного совмещения текста и звезды.
+        // 5. Звезда летит дальше и садится на финальное место
         starPhaseB.animateTo(1f, tween(420, easing = LinearOutSlowInEasing))
         floatingStarAlpha.animateTo(0f, tween(180, easing = FastOutSlowInEasing))
-        finalRowAlpha.animateTo(1f, tween(320, easing = FastOutSlowInEasing))
+        finalStarAlpha.animateTo(1f, tween(180, easing = FastOutSlowInEasing))
 
-        delay(750)
+        // 6. Текст печатается по буквам — быстро
+        for (i in 1..fullText.length) {
+            visibleCharCount = i
+            delay(38)
+        }
+
+        delay(650)
         onFinished()
     }
 
@@ -156,24 +164,27 @@ fun SplashScreen(onFinished: () -> Unit) {
                 .graphicsLayer { alpha = floatingStarAlpha.value }
         )
 
-        // ── Финальный ряд "★ Wink VPN" — обычный Compose Row, гарантированно без наложений ──
-        Row(
-            verticalAlignment = Alignment.CenterVertically,
-            modifier = Modifier.graphicsLayer { alpha = finalRowAlpha.value }
-        ) {
+        // ── Финальный ряд "★ Wink VPN" — звезда фиксирована, текст печатается по буквам ──
+        Row(verticalAlignment = Alignment.CenterVertically) {
             Image(
                 painter = painterResource(id = R.drawable.logo_star),
                 contentDescription = null,
-                modifier = Modifier.size(28.dp)
+                modifier = Modifier
+                    .size(28.dp)
+                    .graphicsLayer { alpha = finalStarAlpha.value }
             )
             Spacer(Modifier.width(10.dp))
-            Text(
-                "Wink VPN",
-                fontSize = 32.sp,
-                fontWeight = FontWeight.Black,
-                fontStyle = FontStyle.Italic,
-                color = WinkBlack
-            )
+            // Фиксированная ширина под весь текст сразу — чтобы во время печати
+            // ряд не "рос" и не сдвигал звезду влево-вправо.
+            Box(modifier = Modifier.width(190.dp)) {
+                Text(
+                    fullText.take(visibleCharCount),
+                    fontSize = 32.sp,
+                    fontWeight = FontWeight.Black,
+                    fontStyle = FontStyle.Italic,
+                    color = WinkBlack
+                )
+            }
         }
     }
 }
