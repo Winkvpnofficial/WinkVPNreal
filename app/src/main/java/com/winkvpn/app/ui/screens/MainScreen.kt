@@ -11,6 +11,8 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Text
@@ -91,40 +93,34 @@ fun MainScreen() {
             CurvedArrow(widthDp = 130, heightDp = 170, alpha = 0.05f)
         }
 
-        Column(modifier = Modifier.fillMaxSize().padding(top = 48.dp)) {
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .verticalScroll(rememberScrollState())
+                .padding(top = 48.dp)
+        ) {
 
-            // Topbar
+            // Topbar — только логотип и название, без лишней кнопки
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(horizontal = 26.dp),
-                horizontalArrangement = Arrangement.SpaceBetween,
+                horizontalArrangement = Arrangement.Start,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Image(
-                        painter = painterResource(id = R.drawable.logo_wink),
-                        contentDescription = null,
-                        modifier = Modifier.height(26.dp)
-                    )
-                    Spacer(Modifier.width(10.dp))
-                    Text(
-                        "Wink VPN",
-                        fontSize = 22.sp,
-                        fontWeight = FontWeight.Black,
-                        fontStyle = FontStyle.Italic,
-                        color = WinkBlack
-                    )
-                }
-                Box(
-                    modifier = Modifier
-                        .clip(RoundedCornerShape(99.dp))
-                        .background(WinkBlack)
-                        .clickable { promoOpen = true }
-                        .padding(horizontal = 16.dp, vertical = 9.dp)
-                ) {
-                    Text("Активировать промокод", color = WinkWhite, fontSize = 12.5.sp, fontWeight = FontWeight.Black)
-                }
+                Image(
+                    painter = painterResource(id = R.drawable.logo_wink),
+                    contentDescription = null,
+                    modifier = Modifier.height(26.dp)
+                )
+                Spacer(Modifier.width(10.dp))
+                Text(
+                    "Wink VPN",
+                    fontSize = 22.sp,
+                    fontWeight = FontWeight.Black,
+                    fontStyle = FontStyle.Italic,
+                    color = WinkBlack
+                )
             }
 
             Spacer(Modifier.height(14.dp))
@@ -224,10 +220,8 @@ fun MainScreen() {
                 InfoCard("IP", if (connState == ConnState.ON) "${server.ipPrefix}${Random.nextInt(10, 99)}" else "—", Modifier.weight(1f), fontSize = 12)
             }
 
-            Spacer(Modifier.weight(1f))
-
-            // Connect button
-            Box(modifier = Modifier.fillMaxWidth().padding(horizontal = 22.dp).padding(top = 22.dp, bottom = 42.dp)) {
+            // Connect button — сразу под карточками, а не внизу экрана
+            Box(modifier = Modifier.fillMaxWidth().padding(horizontal = 22.dp).padding(top = 18.dp)) {
                 val btnColor by animateColorAsState(
                     if (connState == ConnState.ON) Color(0xFF222222) else WinkBlack,
                     label = "connBtnColor"
@@ -253,6 +247,39 @@ fun MainScreen() {
                     )
                 }
             }
+
+            Spacer(Modifier.height(16.dp))
+
+            // Три полупрозрачные серые кнопки: промокод / телеграм / поддержка
+            Column(
+                modifier = Modifier.fillMaxWidth().padding(horizontal = 22.dp),
+                verticalArrangement = Arrangement.spacedBy(10.dp)
+            ) {
+                ActionRowButton(
+                    label = "Активировать промокод",
+                    icon = { GiftGlyph(sizeDp = 20) },
+                    onClick = { promoOpen = true }
+                )
+                ActionRowButton(
+                    label = "Наш Telegram канал",
+                    icon = { TelegramPaperPlaneIcon(sizeDp = 19, tint = WinkBlack) },
+                    onClick = {
+                        val intent = Intent(Intent.ACTION_VIEW, Uri.parse("https://t.me/Winkvpn_official"))
+                        context.startActivity(intent)
+                    }
+                )
+                ActionRowButton(
+                    label = "Поддержка",
+                    icon = { HeadsetGlyph(sizeDp = 20) },
+                    onClick = {
+                        val intent = Intent(Intent.ACTION_VIEW, Uri.parse("https://t.me/Winkvpn_official"))
+                        context.startActivity(intent)
+                    }
+                )
+            }
+
+            Spacer(Modifier.height(24.dp))
+            Spacer(Modifier.height(24.dp))
         }
 
         // Connecting overlay
@@ -353,6 +380,27 @@ private fun PowerButton(connected: Boolean, connecting: Boolean, onClick: () -> 
                 )
             }
         }
+    }
+}
+
+@Composable
+private fun ActionRowButton(
+    label: String,
+    icon: @Composable () -> Unit,
+    onClick: () -> Unit
+) {
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(20.dp))
+            .background(WinkBlack09)
+            .clickable(onClick = onClick)
+            .padding(horizontal = 18.dp, vertical = 15.dp)
+    ) {
+        icon()
+        Spacer(Modifier.width(14.dp))
+        Text(label, fontSize = 14.5.sp, fontWeight = FontWeight.Bold, color = WinkBlack)
     }
 }
 
