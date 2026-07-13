@@ -1,3 +1,5 @@
+@file:OptIn(androidx.compose.animation.ExperimentalAnimationApi::class)
+
 package com.winkvpn.app.ui.screens
 
 import androidx.compose.animation.AnimatedVisibility
